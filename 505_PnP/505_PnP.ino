@@ -36,7 +36,7 @@ RH_RF95 rf95(RFM95_CS, RFM95_INT);
 /**
  * This file can be a LoRa PnP template.
  * Modifying the doSense() with properly imported library and setup.`
- * remember to transfer the data into string before you put into UploadObs
+ * remember to transfer the data into string before put into UploadObs
  * Other things are gracefully handled :)
  */
 
