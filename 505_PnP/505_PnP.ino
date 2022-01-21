@@ -35,14 +35,15 @@ RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
 /**
  * This file can be a LoRa PnP template.
- * Modifying the doSense() with properly imported library and setup.
+ * Modifying the doSense() with properly imported library and setup.`
+ * remember to transfer the data into string before you put into UploadObs
  * Other things are gracefully handled :)
  */
 
 int pre_dis = 2;
-
 void doSense(){
 
+  // *****Modify code below*****
 
   int distance = 100;
   if(digitalRead(5)==HIGH) {
@@ -89,6 +90,13 @@ void loop() {
   doSense();
 }
 
+// For sending description file
+void sendDesc(){
+  Serial.println(F("Sending description file."));
+  String UploadString = "{\"operation\":\"SendDesc\",\"device_ID\":\""+ UID +"\", \"msg_body\":\""+ Desc +"\"}";
+  sendData(UploadString);
+}
+
 // For sending data, Msg should be handled as String
 void sendData(String Msg){
   int n = Msg.length();
@@ -101,10 +109,10 @@ void sendData(String Msg){
 
 
 // Response code: 201 Created, 404 Not Found, 504 Bad Gateway.
-// If the gateway didn't response in 5 seconds, will deem as package lost.
+// If the gateway didn't response in 1 seconds, will deem as package lost.
 // If received 404 Not Found, will send descrption file to the gateway.
 int waitResponse(){ 
-  //Serial.println(RamIndicator());
+
   Serial.println(F("Uploaded observation, waiting for response..."));
   int response = 0;
   unsigned int ini_time = millis();
@@ -123,15 +131,13 @@ int waitResponse(){
 
       Serial.println(F("Receiving packet..."));
       if (rf95.recv(buf, &len)){
-        //RH_RF95::printBuffer("Received: ", buf, len);
-        //Serial.print("Got: ");
         String decodechar = (char*)buf;
-        //Serial.println(decodechar);
         json_error = deserializeJson(json_doc, decodechar);
 
         if (!json_error){
           String rec_UID = json_doc["UID"];
           int results = json_doc["results"];
+
           if (rec_UID == UID && results == 404){
             response = 404;
             Serial.println(F("404 Not Found"));
@@ -162,7 +168,6 @@ int waitResponse(){
 }
 
 void UploadObs(String result){
-  //Serial.println(RamIndicator());
   String Obs = "\"results\":" + result;
   Serial.println(Obs);
   String UploadString = "{\"operation\":\"UploadObs\",\"device_ID\":\""+ UID +"\","+ Obs +"}";
@@ -173,7 +178,8 @@ void UploadObs(String result){
       break;
     }
     else if (response == 404){
-      
+      sendDesc();
+      break;
     }
     else{
       sendData(UploadString);
