@@ -1,12 +1,15 @@
 /*** Setup Before Deployment ***/
 const String UID = "MALE_01_USG";
-
+// Structure: "UID, name, LocName, LocCor_X, LocCor_Y, DatastreamName, UOM_Name, UOM_Symbol, ObservedProperty_Name, Sensor_Name"
+const String Desc = "MALE_01_USG,Toilet Sensor,Toilet,125,25,Usage Detector,Centimeter,cm,Distance from user,Ultrasonic Sensor";
 
 /**
  * Before deployment, please remove all 'waitPacketSent()' function in RadioHead library
  * That function could cause unusual power consumption and cause the LoRa malfunction.
  */
- 
+
+#define SamplingRate 1000
+
 #include <SPI.h> // Import SPI library
 #include <RH_RF95.h> // RF95 from RadioHead Library
 #include <ArduinoJson.h> // Arduino JSON Parser
@@ -39,8 +42,8 @@ RH_RF95 rf95(RFM95_CS, RFM95_INT);
 int pre_dis = 2;
 
 void doSense(){
-  //Serial.println(RamIndicator());
-  //double distance = distanceSensor.measureDistanceCm();
+
+
   int distance = 100;
   if(digitalRead(5)==HIGH) {
     distance = 1;
@@ -48,14 +51,16 @@ void doSense(){
   else {
     distance = 0;
  }
-  delay(1000);
+  
   Serial.println(distance)
   if (distance != pre_dis){
     String result = String(distance);
     UploadObs(result);
     pre_dis = distance;
   }
-  
+
+  // *****Modify code above*****
+  delay(SamplingRate);
 }
 
 void setup() {
@@ -153,23 +158,8 @@ int waitResponse(){
       response = 504;
     }
   }
-  //Serial.println(RamIndicator());
-  
   return response;
 }
-
-//int freeRam () 
-//{
-//  extern int __heap_start, *__brkval; 
-//  int v; 
-//  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
-//}
-
-//String RamIndicator(){
-//  String str2 = String(freeRam());
-//  String str3 = " bytes.";
-//  return str2 + str3;
-//}
 
 void UploadObs(String result){
   //Serial.println(RamIndicator());
@@ -177,16 +167,19 @@ void UploadObs(String result){
   Serial.println(Obs);
   String UploadString = "{\"operation\":\"UploadObs\",\"device_ID\":\""+ UID +"\","+ Obs +"}";
   sendData(UploadString);
- 
-//  Serial.println(RamIndicator());
   int response = waitResponse();
-  if (response == 504){
-    sendData(UploadString);
-    response = waitResponse();
-  }
-  if (response == 504){
-    sendData(UploadString);
-    response = waitResponse();
+  while (true){
+    if (response == 201){
+      break;
+    }
+    else if (response == 404){
+      
+    }
+    else{
+      sendData(UploadString);
+      response = waitResponse();
+    }
+    
   }
 
 }
